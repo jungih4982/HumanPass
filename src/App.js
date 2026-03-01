@@ -15,13 +15,11 @@ const defaultUsers = [
 
 export default function App() {
   // --- [LOCAL STORAGE STATE (백엔드 대체)] ---
-  // 브라우저 캐시를 사용하여 새로고침해도 데이터가 유지되도록 설정합니다.
   const [sites, setSites] = useState(() => JSON.parse(localStorage.getItem('humanpass_sites')) || defaultSites);
   const [appUsers, setAppUsers] = useState(() => JSON.parse(localStorage.getItem('humanpass_users')) || defaultUsers);
   const [jobs, setJobs] = useState(() => JSON.parse(localStorage.getItem('humanpass_jobs')) || []);
   const [checkins, setCheckins] = useState(() => JSON.parse(localStorage.getItem('humanpass_checkins')) || []);
 
-  // 데이터가 변경될 때마다 로컬 스토리지에 자동 저장
   useEffect(() => localStorage.setItem('humanpass_sites', JSON.stringify(sites)), [sites]);
   useEffect(() => localStorage.setItem('humanpass_users', JSON.stringify(appUsers)), [appUsers]);
   useEffect(() => localStorage.setItem('humanpass_jobs', JSON.stringify(jobs)), [jobs]);
@@ -52,7 +50,6 @@ export default function App() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  // 출근 상태 실시간 감지
   useEffect(() => {
     if (currentUser?.role === 'worker') {
       const myTodayCheckin = checkins.find(c => c.uid === currentUser.id && c.date === new Date().toLocaleDateString());
@@ -409,419 +406,474 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-slate-50 flex font-sans">
+        {/* Desktop Sidebar */}
         <AdminNav />
-        <div className="flex-1 p-6 lg:p-10 overflow-y-auto">
-          <div className="flex justify-between items-center mb-10">
-            <div>
-              <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-                {currentView === 'admin-dashboard' && '현장관리'}
-                {currentView === 'admin-jobs' && '구인 공고 관리'}
-                {currentView === 'admin-users' && 'ID 발급 및 관리'}
-                {currentView === 'admin-workers' && '인력 및 서류 열람'}
-              </h2>
-              <p className="text-slate-500 mt-1">휴먼패스 관리자 시스템</p>
-            </div>
-            <div className="flex items-center gap-4 bg-white px-5 py-2.5 rounded-full shadow-sm border border-slate-100">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm">최</div>
-              <span className="text-sm font-bold text-slate-700">{currentUser.name}님</span>
-              <button onClick={handleLogout} className="md:hidden bg-slate-100 p-2 rounded-full text-slate-500 hover:bg-slate-200 transition"><LogOut className="w-4 h-4"/></button>
+
+        {/* Admin Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileMenuOpen(false)}></div>
+            <div className="relative bg-white w-[280px] h-full shadow-2xl flex flex-col transform transition-transform duration-300">
+              <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-indigo-50 to-white">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-extrabold text-xl shadow-lg shadow-indigo-600/30">
+                    {currentUser.name?.charAt(0) || '최'}
+                  </div>
+                  <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-slate-800 p-2 bg-white rounded-full shadow-sm"><X className="w-5 h-5"/></button>
+                </div>
+                <div>
+                  <div className="font-extrabold text-xl text-slate-800">{currentUser.name}님</div>
+                  <div className="text-sm text-indigo-600 font-bold mt-1 bg-indigo-100 inline-block px-3 py-1 rounded-full">최고관리자</div>
+                </div>
+              </div>
+              <div className="flex-1 py-6 flex flex-col gap-2 px-4 overflow-y-auto">
+                <button onClick={() => { setCurrentView('admin-dashboard'); setIsMobileMenuOpen(false); }} className={`flex items-center p-4 rounded-2xl transition-all ${currentView === 'admin-dashboard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+                  <Home className={`w-5 h-5 mr-4 ${currentView === 'admin-dashboard' ? 'text-white' : 'text-slate-400'}`}/> 현장관리
+                </button>
+                <button onClick={() => { setCurrentView('admin-jobs'); setIsMobileMenuOpen(false); }} className={`flex items-center p-4 rounded-2xl transition-all ${currentView === 'admin-jobs' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+                  <Briefcase className={`w-5 h-5 mr-4 ${currentView === 'admin-jobs' ? 'text-white' : 'text-slate-400'}`}/> 공고/지원 관리
+                </button>
+                <button onClick={() => { setCurrentView('admin-users'); setIsMobileMenuOpen(false); }} className={`flex items-center p-4 rounded-2xl transition-all ${currentView === 'admin-users' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+                  <IdCard className={`w-5 h-5 mr-4 ${currentView === 'admin-users' ? 'text-white' : 'text-slate-400'}`}/> ID 발급/관리
+                </button>
+                <button onClick={() => { setCurrentView('admin-workers'); setIsMobileMenuOpen(false); }} className={`flex items-center p-4 rounded-2xl transition-all ${currentView === 'admin-workers' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+                  <Users className={`w-5 h-5 mr-4 ${currentView === 'admin-workers' ? 'text-white' : 'text-slate-400'}`}/> 서류 열람
+                </button>
+              </div>
+              <div className="p-6 border-t border-slate-100">
+                <button onClick={handleLogout} className="flex items-center text-slate-500 hover:text-red-500 font-bold w-full transition-colors"><LogOut className="w-5 h-5 mr-3"/> 로그아웃</button>
+              </div>
             </div>
           </div>
+        )}
 
-          {currentView === 'admin-dashboard' && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 relative overflow-hidden group hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out"></div>
-                  <div className="relative z-10">
-                    <div className="text-slate-500 text-sm font-medium mb-2 flex items-center"><Users className="w-4 h-4 mr-1"/> 오늘 총 출근 인원</div>
-                    <div className="text-4xl font-black text-slate-800">{todaysCheckins.length}<span className="text-xl text-slate-400 font-semibold ml-1">명</span></div>
+        <div className="flex-1 flex flex-col h-screen overflow-hidden">
+          {/* Admin Mobile Header */}
+          <header className="md:hidden bg-white/80 backdrop-blur-xl px-5 py-4 shadow-sm sticky top-0 z-30 flex justify-between items-center border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-800 p-2 -ml-2 hover:bg-slate-100 rounded-full transition-all">
+                <Menu className="w-6 h-6" />
+              </button>
+              <div className="font-extrabold text-lg text-slate-800 tracking-tight">관리자 시스템</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={handleLogout} className="text-slate-500 hover:text-slate-800 p-2"><LogOut className="w-5 h-5"/></button>
+            </div>
+          </header>
+
+          <div className="flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto pb-20">
+            <div className="flex justify-between items-end mb-6 md:mb-10">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">
+                  {currentView === 'admin-dashboard' && '현장관리'}
+                  {currentView === 'admin-jobs' && '구인 공고 관리'}
+                  {currentView === 'admin-users' && 'ID 발급 및 관리'}
+                  {currentView === 'admin-workers' && '인력 및 서류 열람'}
+                </h2>
+                <p className="text-sm md:text-base text-slate-500 mt-1">휴먼패스 관리자 시스템</p>
+              </div>
+              {/* Desktop Profile Pill */}
+              <div className="hidden md:flex items-center gap-4 bg-white px-5 py-2.5 rounded-full shadow-sm border border-slate-100">
+                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm">최</div>
+                <span className="text-sm font-bold text-slate-700">{currentUser.name}님</span>
+              </div>
+            </div>
+
+            {currentView === 'admin-dashboard' && (
+              <div className="space-y-6 md:space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 relative overflow-hidden group hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
+                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out"></div>
+                    <div className="relative z-10">
+                      <div className="text-slate-500 text-sm font-medium mb-2 flex items-center"><Users className="w-4 h-4 mr-1"/> 오늘 총 출근 인원</div>
+                      <div className="text-4xl font-black text-slate-800">{todaysCheckins.length}<span className="text-xl text-slate-400 font-semibold ml-1">명</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 break-keep">현장 목록 및 실시간 근태</h3>
+                    <button onClick={openAddSiteModal} className="w-full sm:w-auto justify-center bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 sm:py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-slate-900/20 transition-all active:scale-95">
+                      <Plus className="w-4 h-4 mr-1"/> 신규 현장 등록
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    {sites.length === 0 ? (
+                      <div className="col-span-full p-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-slate-100">등록된 현장이 없습니다.</div>
+                    ) : (
+                      sites.map(site => {
+                        const checkinCount = getSiteCheckinCount(site.id);
+
+                        return (
+                        <div key={site.id} onClick={() => openEditSiteModal(site)} className="border border-slate-100 rounded-2xl p-5 sm:p-6 hover:border-indigo-200 hover:shadow-md transition-all bg-slate-50/50 cursor-pointer group">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <div className="font-extrabold text-lg text-slate-800">{site.name}</div>
+                              <div className="text-sm text-slate-500 mt-1 flex items-center"><MapPin className="w-4 h-4 mr-1 shrink-0"/><span className="truncate">{site.address}</span></div>
+                            </div>
+                            <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors shrink-0">
+                              <Edit2 className="w-4 h-4"/>
+                            </button>
+                          </div>
+                          <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
+                            <span className="text-slate-600 font-medium text-sm">금일 출근 인원</span>
+                            <div className="flex items-center gap-3">
+                              <span className="font-extrabold text-indigo-600 text-xl">{checkinCount}명</span>
+                            </div>
+                          </div>
+                        </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-extrabold text-slate-800">현장 목록 및 실시간 근태</h3>
-                  <button onClick={openAddSiteModal} className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5">
-                    <Plus className="w-4 h-4 mr-1"/> 신규 현장 등록
+            )}
+
+            {/* Admin Site Modal */}
+            {isSiteModalOpen && editingSite && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSiteModalOpen(false)}></div>
+                <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 z-10 animate-fade-in-up">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-extrabold text-slate-800 break-keep">
+                      {editingSite.id ? '현장 정보 수정' : '신규 현장 등록'}
+                    </h3>
+                    <button onClick={() => setIsSiteModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
+                  </div>
+                  <form onSubmit={handleSaveSite} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">현장 이름</label>
+                      <input type="text" required value={editingSite.name} onChange={e => setEditingSite({...editingSite, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 금정산 하늘채 루미엘" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">현장 주소</label>
+                      <input type="text" required value={editingSite.address} onChange={e => setEditingSite({...editingSite, address: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 부산광역시 충렬대로 144" />
+                    </div>
+                    <div className="flex gap-3 pt-4">
+                      {editingSite.id && (
+                        <button type="button" onClick={handleDeleteSite} className="w-1/4 bg-red-50 text-red-600 py-3 sm:py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
+                      <button type="submit" className={`bg-indigo-600 text-white py-3 sm:py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingSite.id ? 'w-3/4' : 'w-full'}`}>
+                        {editingSite.id ? '정보 수정하기' : '현장 등록하기'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Jobs (구인 공고 관리) */}
+            {currentView === 'admin-jobs' && (
+              <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 break-keep">등록된 구인 공고</h3>
+                  <button onClick={openAddJobModal} className="w-full sm:w-auto justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 sm:py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95">
+                    <Plus className="w-4 h-4 mr-1"/> 새 공고 등록
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {sites.length === 0 ? (
-                    <div className="col-span-full p-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-slate-100">등록된 현장이 없습니다.</div>
-                  ) : (
-                    sites.map(site => {
-                      const checkinCount = getSiteCheckinCount(site.id);
-
-                      return (
-                      <div key={site.id} onClick={() => openEditSiteModal(site)} className="border border-slate-100 rounded-2xl p-6 hover:border-indigo-200 hover:shadow-md transition-all bg-slate-50/50 cursor-pointer group">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <div className="font-extrabold text-lg text-slate-800">{site.name}</div>
-                            <div className="text-sm text-slate-500 mt-1 flex items-center"><MapPin className="w-4 h-4 mr-1"/>{site.address}</div>
-                          </div>
-                          <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
-                            <Edit2 className="w-4 h-4"/>
-                          </button>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
-                          <span className="text-slate-600 font-medium text-sm">금일 출근 인원</span>
-                          <div className="flex items-center gap-3">
-                            <span className="font-extrabold text-indigo-600 text-xl">{checkinCount}명</span>
-                          </div>
-                        </div>
-                      </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Admin Site Modal */}
-          {isSiteModalOpen && editingSite && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSiteModalOpen(false)}></div>
-              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 m-4 z-10 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-extrabold text-slate-800">
-                    {editingSite.id ? '현장 정보 수정' : '신규 현장 등록'}
-                  </h3>
-                  <button onClick={() => setIsSiteModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
-                </div>
-                <form onSubmit={handleSaveSite} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">현장 이름</label>
-                    <input type="text" required value={editingSite.name} onChange={e => setEditingSite({...editingSite, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 금정산 하늘채 루미엘" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">현장 주소</label>
-                    <input type="text" required value={editingSite.address} onChange={e => setEditingSite({...editingSite, address: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 부산광역시 충렬대로 144" />
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    {editingSite.id && (
-                      <button type="button" onClick={handleDeleteSite} className="w-1/4 bg-red-50 text-red-600 py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                    <button type="submit" className={`bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingSite.id ? 'w-3/4' : 'w-full'}`}>
-                      {editingSite.id ? '정보 수정하기' : '현장 등록하기'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* Admin Jobs (구인 공고 관리) */}
-          {currentView === 'admin-jobs' && (
-            <div className="bg-white p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-extrabold text-slate-800">등록된 구인 공고</h3>
-                <button onClick={openAddJobModal} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all hover:-translate-y-0.5">
-                  <Plus className="w-4 h-4 mr-1"/> 새 공고 등록
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200 uppercase tracking-wider">
-                      <th className="p-4 font-semibold rounded-tl-xl">현장명</th>
-                      <th className="p-4 font-semibold">모집 직군</th>
-                      <th className="p-4 font-semibold">공고 제목</th>
-                      <th className="p-4 font-semibold">날짜</th>
-                      <th className="p-4 font-semibold">상태</th>
-                      <th className="p-4 font-semibold text-right rounded-tr-xl">관리</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {jobs.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="p-8 text-center text-slate-500 font-medium">등록된 공고가 없습니다.</td>
+                <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200 uppercase tracking-wider">
+                        <th className="p-4 font-semibold rounded-tl-xl">현장명</th>
+                        <th className="p-4 font-semibold">모집 직군</th>
+                        <th className="p-4 font-semibold">공고 제목</th>
+                        <th className="p-4 font-semibold">날짜</th>
+                        <th className="p-4 font-semibold">상태</th>
+                        <th className="p-4 font-semibold text-right rounded-tr-xl">관리</th>
                       </tr>
-                    ) : (
-                      jobs.map(job => (
-                        <tr key={job.id} onClick={() => openEditJobModal(job)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
-                          <td className="p-4 text-sm font-medium text-slate-700">{sites.find(s=>s.id===job.siteId)?.name || '알 수 없음'}</td>
-                          <td className="p-4">
-                            <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">{job.role}</span>
-                          </td>
-                          <td className="p-4 text-sm font-bold text-slate-800">{job.title}</td>
-                          <td className="p-4 text-sm text-slate-500">{job.date}</td>
-                          <td className="p-4">
-                            <span className={`px-3 py-1 rounded-lg text-xs font-bold ${job.status === '모집중' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>{job.status}</span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
-                              <Edit2 className="w-4 h-4"/>
-                            </button>
-                          </td>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {jobs.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="p-8 text-center text-slate-500 font-medium">등록된 공고가 없습니다.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Admin Job Creation Modal */}
-          {isJobModalOpen && editingJob && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsJobModalOpen(false)}></div>
-              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 m-4 z-10 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-extrabold text-slate-800">
-                    {editingJob.id ? '공고 수정' : '새 구인 공고 등록'}
-                  </h3>
-                  <button onClick={() => setIsJobModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
+                      ) : (
+                        jobs.map(job => (
+                          <tr key={job.id} onClick={() => openEditJobModal(job)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                            <td className="p-4 text-sm font-medium text-slate-700 truncate max-w-[120px]">{sites.find(s=>s.id===job.siteId)?.name || '알 수 없음'}</td>
+                            <td className="p-4">
+                              <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200 whitespace-nowrap">{job.role}</span>
+                            </td>
+                            <td className="p-4 text-sm font-bold text-slate-800 truncate max-w-[150px]">{job.title}</td>
+                            <td className="p-4 text-sm text-slate-500 whitespace-nowrap">{job.date}</td>
+                            <td className="p-4">
+                              <span className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${job.status === '모집중' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>{job.status}</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
+                                <Edit2 className="w-4 h-4"/>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                <form onSubmit={handleSaveJob} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">공고 제목</label>
-                    <input type="text" required value={editingJob.title} onChange={e => setEditingJob({...editingJob, title: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 주말 홍보 요원 급구" />
-                  </div>
-                  
-                  {/* Autocomplete for Site */}
-                  <div className="relative">
-                    <label className="block text-sm font-bold text-slate-700 mb-1">배치 현장 검색</label>
-                    <input
-                      type="text"
-                      value={siteSearchTerm}
-                      onChange={e => {
-                        setSiteSearchTerm(e.target.value);
-                        setShowSiteDropdown(true);
-                      }}
-                      onFocus={() => setShowSiteDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowSiteDropdown(false), 200)}
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="현장 이름을 입력하여 선택하세요"
-                    />
-                    {showSiteDropdown && siteSearchTerm && (
-                      <ul className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto mt-1">
-                        {sites.filter(s => s.name.includes(siteSearchTerm)).length > 0 ? (
-                          sites.filter(s => s.name.includes(siteSearchTerm)).map(site => (
-                            <li
-                              key={site.id}
-                              onClick={() => {
-                                setEditingJob({...editingJob, siteId: site.id});
-                                setSiteSearchTerm(site.name);
-                                setShowSiteDropdown(false);
-                              }}
-                              className="px-4 py-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold text-slate-700 transition-colors"
-                            >
-                              {site.name}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="px-4 py-3 text-sm text-slate-500">검색 결과가 없습니다.</li>
-                        )}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">모집 직군</label>
-                      <select value={editingJob.role} onChange={e => setEditingJob({...editingJob, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
-                        <option value="스태프">스태프</option>
-                        <option value="홍보단">홍보단</option>
-                        <option value="미화">미화</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">근무 날짜</label>
-                      <input type="date" required value={editingJob.date} onChange={e => setEditingJob({...editingJob, date: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">급여 (일당)</label>
-                    <input type="text" required value={editingJob.wage} onChange={e => setEditingJob({...editingJob, wage: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 일당 100,000원" />
-                  </div>
-                  {editingJob.id && (
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">모집 상태</label>
-                      <select value={editingJob.status} onChange={e => setEditingJob({...editingJob, status: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
-                        <option value="모집중">모집중</option>
-                        <option value="마감">마감</option>
-                      </select>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-3 pt-4">
-                    {editingJob.id && (
-                      <button type="button" onClick={handleDeleteJob} className="w-1/4 bg-red-50 text-red-600 py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                    <button type="submit" className={`bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingJob.id ? 'w-3/4' : 'w-full'}`}>
-                      {editingJob.id ? '공고 수정' : '새 공고 등록'}
-                    </button>
-                  </div>
-                </form>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Admin Users (ID Management) */}
-          {currentView === 'admin-users' && (
-            <div className="bg-white p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-extrabold text-slate-800">전체 ID 발급 및 관리 현황</h3>
-                <button onClick={openAddUserModal} className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5">
-                  <Plus className="w-4 h-4 mr-1"/> 신규 ID 발급
-                </button>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200 uppercase tracking-wider">
-                      <th className="p-4 font-semibold rounded-tl-xl w-20">ID</th>
-                      <th className="p-4 font-semibold w-24">구분</th>
-                      <th className="p-4 font-semibold">이름</th>
-                      <th className="p-4 font-semibold w-20">성별</th>
-                      <th className="p-4 font-semibold w-32">생년월일</th>
-                      <th className="p-4 font-semibold w-32">상태</th>
-                      <th className="p-4 font-semibold text-right rounded-tr-xl">관리</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {appUsers.filter(u => u.role === 'worker').length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="p-8 text-center text-slate-500 font-medium">발급된 ID가 없습니다.</td>
-                      </tr>
-                    ) : (
-                      appUsers.filter(u => u.role === 'worker').map(user => (
-                        <tr key={user.id} onClick={() => openEditUserModal(user)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
-                          <td className="p-4 font-extrabold text-indigo-600">{user.loginId}</td>
-                          <td className="p-4">
-                            <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">{user.type}</span>
-                          </td>
-                          <td className="p-4 font-bold text-slate-800">
-                            {user.name || <span className="text-slate-400 font-medium">미등록</span>}
-                          </td>
-                          <td className="p-4 text-sm text-slate-600">{user.gender || '-'}</td>
-                          <td className="p-4 text-sm text-slate-600">{user.birthdate || '-'}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-md text-xs font-bold ${user.isNew ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
-                              {user.isNew ? '신규 (미접속)' : '가입 완료'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
-                              <Edit2 className="w-4 h-4"/>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Admin User Modals */}
-          {isUserModalOpen && editingUser && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsUserModalOpen(false)}></div>
-              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 m-4 z-10 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-extrabold text-slate-800">
-                    {editingUser.id ? 'ID 정보 수정' : '신규 ID 발급'}
-                  </h3>
-                  <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
-                </div>
-                <form onSubmit={handleSaveUser} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">발급 ID (사번)</label>
-                      <input type="text" value={editingUser.loginId} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-extrabold text-indigo-600 outline-none" />
-                      <p className="text-[10px] text-slate-500 mt-1">*자동 넘버링 (수정불가)</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">직군 구분</label>
-                      <select value={editingUser.type} onChange={e => setEditingUser({...editingUser, type: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
-                        <option value="스태프">스태프</option>
-                        <option value="홍보단">홍보단</option>
-                        <option value="미화">미화</option>
-                      </select>
-                    </div>
+            {/* Admin Job Creation Modal */}
+            {isJobModalOpen && editingJob && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsJobModalOpen(false)}></div>
+                <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 z-10 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-extrabold text-slate-800 break-keep">
+                      {editingJob.id ? '공고 수정' : '새 구인 공고 등록'}
+                    </h3>
+                    <button onClick={() => setIsJobModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
                   </div>
+                  <form onSubmit={handleSaveJob} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">공고 제목</label>
+                      <input type="text" required value={editingJob.title} onChange={e => setEditingJob({...editingJob, title: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 주말 홍보 요원 급구" />
+                    </div>
+                    
+                    {/* Autocomplete for Site */}
+                    <div className="relative">
+                      <label className="block text-sm font-bold text-slate-700 mb-1">배치 현장 검색</label>
+                      <input
+                        type="text"
+                        value={siteSearchTerm}
+                        onChange={e => {
+                          setSiteSearchTerm(e.target.value);
+                          setShowSiteDropdown(true);
+                        }}
+                        onFocus={() => setShowSiteDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowSiteDropdown(false), 200)}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        placeholder="현장 이름을 입력하여 선택하세요"
+                      />
+                      {showSiteDropdown && siteSearchTerm && (
+                        <ul className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto mt-1">
+                          {sites.filter(s => s.name.includes(siteSearchTerm)).length > 0 ? (
+                            sites.filter(s => s.name.includes(siteSearchTerm)).map(site => (
+                              <li
+                                key={site.id}
+                                onClick={() => {
+                                  setEditingJob({...editingJob, siteId: site.id});
+                                  setSiteSearchTerm(site.name);
+                                  setShowSiteDropdown(false);
+                                }}
+                                className="px-4 py-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold text-slate-700 transition-colors"
+                              >
+                                {site.name}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="px-4 py-3 text-sm text-slate-500">검색 결과가 없습니다.</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
 
-                  <div className="border-t border-slate-100 pt-4 mt-2">
-                    <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">기본 인적사항 (선택)</p>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">이름</label>
-                        <input type="text" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="미입력 시 근로자가 로그인 후 등록" />
+                        <label className="block text-sm font-bold text-slate-700 mb-1">모집 직군</label>
+                        <select value={editingJob.role} onChange={e => setEditingJob({...editingJob, role: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
+                          <option value="스태프">스태프</option>
+                          <option value="홍보단">홍보단</option>
+                          <option value="미화">미화</option>
+                        </select>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">생년월일</label>
-                          <input type="date" value={editingUser.birthdate} onChange={e => setEditingUser({...editingUser, birthdate: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-slate-700 mb-1">성별</label>
-                          <select value={editingUser.gender} onChange={e => setEditingUser({...editingUser, gender: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
-                            <option value="남">남성</option>
-                            <option value="여">여성</option>
-                          </select>
-                        </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">근무 날짜</label>
+                        <input type="date" required value={editingJob.date} onChange={e => setEditingJob({...editingJob, date: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    {editingUser.id && (
-                      <button type="button" onClick={handleDeleteUser} className="w-1/4 bg-red-50 text-red-600 py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">급여 (일당)</label>
+                      <input type="text" required value={editingJob.wage} onChange={e => setEditingJob({...editingJob, wage: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="예: 일당 100,000원" />
+                    </div>
+                    {editingJob.id && (
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">모집 상태</label>
+                        <select value={editingJob.status} onChange={e => setEditingJob({...editingJob, status: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
+                          <option value="모집중">모집중</option>
+                          <option value="마감">마감</option>
+                        </select>
+                      </div>
                     )}
-                    <button type="submit" className={`bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingUser.id ? 'w-3/4' : 'w-full'}`}>
-                      {editingUser.id ? '정보 수정하기' : '신규 발급하기'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {currentView === 'admin-workers' && (
-            <div className="bg-white p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <h3 className="text-xl font-extrabold text-slate-800">등록 완료 인력 및 서류 열람</h3>
-                <div className="flex gap-3 w-full md:w-auto">
-                   <input type="text" placeholder="이름으로 검색" className="flex-1 md:w-64 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+                    
+                    <div className="flex gap-3 pt-4">
+                      {editingJob.id && (
+                        <button type="button" onClick={handleDeleteJob} className="w-1/4 bg-red-50 text-red-600 py-3 sm:py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
+                      <button type="submit" className={`bg-indigo-600 text-white py-3 sm:py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingJob.id ? 'w-3/4' : 'w-full'}`}>
+                        {editingJob.id ? '공고 수정' : '새 공고 등록'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {appUsers.filter(u => u.role === 'worker' && !u.isNew).length === 0 ? (
-                  <div className="col-span-full p-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-slate-100">가입을 완료한 근로자가 없습니다.</div>
-                ) : (
-                  appUsers.filter(u => u.role === 'worker' && !u.isNew).map(user => (
-                    <div key={user.id} className="border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:shadow-md bg-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold text-lg">
-                          {user.name?.charAt(0) || '미'}
-                        </div>
-                        <div>
-                          <div className="font-extrabold text-slate-800 flex items-center gap-2">{user.name} <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">{user.type}</span></div>
-                          <div className="text-xs text-slate-500 mt-1 font-medium">{user.birthdate} | {user.gender} | ID: {user.loginId}</div>
-                        </div>
+            )}
+
+            {/* Admin Users (ID Management) */}
+            {currentView === 'admin-users' && (
+              <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 break-keep">전체 ID 발급 및 관리 현황</h3>
+                  <button onClick={openAddUserModal} className="w-full sm:w-auto justify-center bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 sm:py-2.5 rounded-xl flex items-center text-sm font-bold shadow-lg shadow-slate-900/20 transition-all active:scale-95">
+                    <Plus className="w-4 h-4 mr-1"/> 신규 ID 발급
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200 uppercase tracking-wider">
+                        <th className="p-4 font-semibold rounded-tl-xl w-20">ID</th>
+                        <th className="p-4 font-semibold w-24">구분</th>
+                        <th className="p-4 font-semibold">이름</th>
+                        <th className="p-4 font-semibold w-20">성별</th>
+                        <th className="p-4 font-semibold w-32">생년월일</th>
+                        <th className="p-4 font-semibold w-32">상태</th>
+                        <th className="p-4 font-semibold text-right rounded-tr-xl">관리</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {appUsers.filter(u => u.role === 'worker').length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="p-8 text-center text-slate-500 font-medium">발급된 ID가 없습니다.</td>
+                        </tr>
+                      ) : (
+                        appUsers.filter(u => u.role === 'worker').map(user => (
+                          <tr key={user.id} onClick={() => openEditUserModal(user)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                            <td className="p-4 font-extrabold text-indigo-600">{user.loginId}</td>
+                            <td className="p-4">
+                              <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">{user.type}</span>
+                            </td>
+                            <td className="p-4 font-bold text-slate-800 truncate max-w-[120px]">
+                              {user.name || <span className="text-slate-400 font-medium">미등록</span>}
+                            </td>
+                            <td className="p-4 text-sm text-slate-600">{user.gender || '-'}</td>
+                            <td className="p-4 text-sm text-slate-600">{user.birthdate || '-'}</td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded-md text-xs font-bold whitespace-nowrap ${user.isNew ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                                {user.isNew ? '신규 (미접속)' : '가입 완료'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button className="text-slate-400 group-hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50 transition-colors">
+                                <Edit2 className="w-4 h-4"/>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Admin User Modals */}
+            {isUserModalOpen && editingUser && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsUserModalOpen(false)}></div>
+                <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 z-10 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-extrabold text-slate-800 break-keep">
+                      {editingUser.id ? 'ID 정보 수정' : '신규 ID 발급'}
+                    </h3>
+                    <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-800 transition-colors"><X className="w-6 h-6"/></button>
+                  </div>
+                  <form onSubmit={handleSaveUser} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">발급 ID (사번)</label>
+                        <input type="text" value={editingUser.loginId} readOnly className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-extrabold text-indigo-600 outline-none" />
+                        <p className="text-[10px] text-slate-500 mt-1">*자동 넘버링 (수정불가)</p>
                       </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 sm:flex-none px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all">신분증</button>
-                        <button className="flex-1 sm:flex-none px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all">통장사본</button>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">직군 구분</label>
+                        <select value={editingUser.type} onChange={e => setEditingUser({...editingUser, type: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
+                          <option value="스태프">스태프</option>
+                          <option value="홍보단">홍보단</option>
+                          <option value="미화">미화</option>
+                        </select>
                       </div>
                     </div>
-                  ))
-                )}
+
+                    <div className="border-t border-slate-100 pt-4 mt-2">
+                      <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">기본 인적사항 (선택)</p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">이름</label>
+                          <input type="text" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="미입력 시 근로자가 로그인 후 등록" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">생년월일</label>
+                            <input type="date" value={editingUser.birthdate} onChange={e => setEditingUser({...editingUser, birthdate: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">성별</label>
+                            <select value={editingUser.gender} onChange={e => setEditingUser({...editingUser, gender: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-all">
+                              <option value="남">남성</option>
+                              <option value="여">여성</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      {editingUser.id && (
+                        <button type="button" onClick={handleDeleteUser} className="w-1/4 bg-red-50 text-red-600 py-3 sm:py-4 rounded-xl font-bold hover:bg-red-100 transition-all flex items-center justify-center">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
+                      <button type="submit" className={`bg-indigo-600 text-white py-3 sm:py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:shadow-xl transition-all active:scale-95 ${editingUser.id ? 'w-3/4' : 'w-full'}`}>
+                        {editingUser.id ? '정보 수정하기' : '신규 발급하기'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {currentView === 'admin-workers' && (
+              <div className="bg-white p-5 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 break-keep">등록 완료 인력 및 서류 열람</h3>
+                  <div className="flex gap-3 w-full md:w-auto">
+                     <input type="text" placeholder="이름으로 검색" className="flex-1 md:w-64 border border-slate-200 rounded-xl px-4 py-3 sm:py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {appUsers.filter(u => u.role === 'worker' && !u.isNew).length === 0 ? (
+                    <div className="col-span-full p-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-slate-100">가입을 완료한 근로자가 없습니다.</div>
+                  ) : (
+                    appUsers.filter(u => u.role === 'worker' && !u.isNew).map(user => (
+                      <div key={user.id} className="border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:shadow-md bg-white">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0">
+                            {user.name?.charAt(0) || '미'}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-slate-800 flex items-center gap-2">{user.name} <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">{user.type}</span></div>
+                            <div className="text-xs text-slate-500 mt-1 font-medium">{user.birthdate} | {user.gender} | ID: {user.loginId}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <button className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all">신분증</button>
+                          <button className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all">통장사본</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -891,7 +943,7 @@ export default function App() {
                 
                 <div className="flex justify-between items-center mb-6 relative z-10">
                   <h2 className="font-extrabold text-slate-800 text-lg flex items-center"><MapPin className="w-5 h-5 mr-2 text-indigo-500"/> 오늘의 현장</h2>
-                  <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-bold">{sites[0]?.name || '현장 미정'}</span>
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-bold truncate max-w-[150px]">{sites[0]?.name || '현장 미정'}</span>
                 </div>
                 {!isCheckedIn ? (
                   <button onClick={handleCheckIn} className="relative z-10 w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl font-extrabold text-lg shadow-xl shadow-indigo-600/30 hover:shadow-2xl hover:shadow-indigo-600/40 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center">
@@ -915,7 +967,7 @@ export default function App() {
                        <div className="font-black text-2xl text-slate-800">07</div>
                      </div>
                      <div className="flex flex-col justify-center">
-                       <div className="font-extrabold text-slate-800 text-md">{sites[0]?.name || '현장 미정'}</div>
+                       <div className="font-extrabold text-slate-800 text-md truncate">{sites[0]?.name || '현장 미정'}</div>
                        <div className="text-xs text-indigo-600 font-bold mt-1.5 flex items-center"><Clock className="w-3.5 h-3.5 mr-1"/> 09:00 ~ 18:00</div>
                      </div>
                    </div>
@@ -943,8 +995,8 @@ export default function App() {
                     </div>
                     <h3 className="font-extrabold text-xl text-slate-800 mb-2">{job.title}</h3>
                     <div className="text-sm text-slate-600 mb-6 space-y-2">
-                      <span className="flex items-center"><MapPin className="w-4 h-4 mr-2 text-slate-400"/> {sites.find(s=>s.id===job.siteId)?.name || '알 수 없음'}</span>
-                      <span className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-slate-400"/> {job.date}</span>
+                      <span className="flex items-center"><MapPin className="w-4 h-4 mr-2 text-slate-400 shrink-0"/> <span className="truncate">{sites.find(s=>s.id===job.siteId)?.name || '알 수 없음'}</span></span>
+                      <span className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-slate-400 shrink-0"/> {job.date}</span>
                       <div className="pt-2 mt-2 border-t border-slate-100">
                         <span className="font-black text-indigo-600 text-lg">{job.wage}</span>
                       </div>
@@ -970,11 +1022,11 @@ export default function App() {
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
                 <div className="flex items-center gap-5 border-b border-slate-100 pb-6 mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full flex items-center justify-center text-indigo-600 font-black text-2xl shadow-inner border border-indigo-200">
+                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full flex items-center justify-center text-indigo-600 font-black text-2xl shadow-inner border border-indigo-200 shrink-0">
                     {currentUser.name?.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="font-extrabold text-2xl text-slate-800">{currentUser.name} <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md ml-1">{currentUser.type}</span></h2>
+                    <h2 className="font-extrabold text-2xl text-slate-800 flex items-center flex-wrap gap-2">{currentUser.name} <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">{currentUser.type}</span></h2>
                     <p className="text-sm font-medium text-slate-500 mt-2">{currentUser.birthdate} | {currentUser.gender}</p>
                   </div>
                 </div>
