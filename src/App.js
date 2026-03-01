@@ -3,106 +3,59 @@ import {
   User, Briefcase, MapPin, CheckSquare, Camera, FileText, 
   Settings, LogOut, Home, Calendar, Users, Plus, CheckCircle, Clock, Menu, X, ChevronRight, ArrowLeft, ArrowRight, IdCard, Trash2, Edit2
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
-// --- [DATA FOR SITES] ---
-const MOCK_SITES = [
-  { name: '금정산 하늘채 루미엘', address: '부산광역시 충렬대로 144' }
+// --- [초기 기본 데이터 세팅] ---
+const defaultSites = [
+  { id: 'site_1', name: '금정산 하늘채 루미엘', address: '부산광역시 충렬대로 144' }
 ];
 
-// 초기 공고 데이터 (샘플 제거)
-const INITIAL_JOBS = [];
+const defaultUsers = [
+  { id: 'user_admin', loginId: 'admin', role: 'admin', isNew: false, name: '최고관리자', password: 'admin' }
+];
 
 export default function App() {
-  // --- [GLOBAL STATE] ---
+  // --- [LOCAL STORAGE STATE (백엔드 대체)] ---
+  // 브라우저 캐시를 사용하여 새로고침해도 데이터가 유지되도록 설정합니다.
+  const [sites, setSites] = useState(() => JSON.parse(localStorage.getItem('humanpass_sites')) || defaultSites);
+  const [appUsers, setAppUsers] = useState(() => JSON.parse(localStorage.getItem('humanpass_users')) || defaultUsers);
+  const [jobs, setJobs] = useState(() => JSON.parse(localStorage.getItem('humanpass_jobs')) || []);
+  const [checkins, setCheckins] = useState(() => JSON.parse(localStorage.getItem('humanpass_checkins')) || []);
+
+  // 데이터가 변경될 때마다 로컬 스토리지에 자동 저장
+  useEffect(() => localStorage.setItem('humanpass_sites', JSON.stringify(sites)), [sites]);
+  useEffect(() => localStorage.setItem('humanpass_users', JSON.stringify(appUsers)), [appUsers]);
+  useEffect(() => localStorage.setItem('humanpass_jobs', JSON.stringify(jobs)), [jobs]);
+  useEffect(() => localStorage.setItem('humanpass_checkins', JSON.stringify(checkins)), [checkins]);
+
+  // --- [GLOBAL APP STATE] ---
   const [currentUser, setCurrentUser] = useState(null); 
   const [currentView, setCurrentView] = useState('login');
-  const [jobs, setJobs] = useState(INITIAL_JOBS);
   const [myApplications, setMyApplications] = useState([]);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // --- [LOGIN STATE] ---
-  const [loginStep, setLoginStep] = useState('id'); // 'id' | 'password' | 'setup'
+  const [loginStep, setLoginStep] = useState('id'); 
   const [loginId, setLoginId] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [setupData, setSetupData] = useState({ name: '', birthdate: '', gender: '남' });
   const [tempUserObj, setTempUserObj] = useState(null);
 
-  // --- [ADMIN STATE] ---
-  const [allCheckins, setAllCheckins] = useState([]);
-  
-  // -- Admin Sites Management State --
-  const [sites, setSites] = useState([]);
+  // --- [ADMIN MODAL STATE] ---
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState(null);
-
-  // -- Admin Jobs (Job Management) State --
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [siteSearchTerm, setSiteSearchTerm] = useState('');
   const [showSiteDropdown, setShowSiteDropdown] = useState(false);
-  
-  // -- Admin Users (ID Management) State --
-  const [appUsers, setAppUsers] = useState([]); // 클라우드 DB 연동 유저 목록
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  // --- [FIREBASE BACKEND STATE] ---
-  const [firebaseUser, setFirebaseUser] = useState(null);
-  const [dbInstance, setDbInstance] = useState(null);
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'humanpass-app';
-
-  // --- [FIREBASE INIT & SYNC] ---
+  // 출근 상태 실시간 감지
   useEffect(() => {
-    try {
-      if (typeof __firebase_config !== 'undefined') {
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        setDbInstance(db);
-
-        const initAuth = async () => {
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-        };
-        initAuth();
-        
-        const unsubscribe = onAuthStateChanged(auth, setFirebaseUser);
-        return () => unsubscribe();
-      }
-    } catch (error) {
-      console.error("Firebase 초기화 에러:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!firebaseUser || !dbInstance) return;
-
-    // 1. 구인 공고 연동
-    const jobsRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'jobs');
-    const unsubJobs = onSnapshot(jobsRef, (snapshot) => {
-      if (snapshot.empty) {
-        INITIAL_JOBS.forEach(job => addDoc(jobsRef, job));
-      } else {
-        setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      }
-    });
-
-    // 2. 출퇴근 기록 연동
-    const checkinsRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'checkins');
-    const unsubCheckins = onSnapshot(checkinsRef, (snapshot) => {
-      const allCheckinsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAllCheckins(allCheckinsData); 
-      
-      const myTodayCheckin = allCheckinsData.find(c => c.uid === firebaseUser.uid && c.date === new Date().toLocaleDateString());
+    if (currentUser?.role === 'worker') {
+      const myTodayCheckin = checkins.find(c => c.uid === currentUser.id && c.date === new Date().toLocaleDateString());
       if (myTodayCheckin) {
         setIsCheckedIn(true);
         setCheckInTime(myTodayCheckin.time);
@@ -110,49 +63,14 @@ export default function App() {
         setIsCheckedIn(false);
         setCheckInTime(null);
       }
-    });
-
-    // 3. 유저(ID) 데이터 연동
-    const usersRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'users');
-    const unsubUsers = onSnapshot(usersRef, (snapshot) => {
-      if (snapshot.empty) {
-        // 최초 로드 시 기본 관리자 세팅 (샘플 근로자 삭제)
-        const initUsers = [
-          { loginId: 'admin', role: 'admin', isNew: false, name: '최고관리자', password: 'admin' }
-        ];
-        initUsers.forEach(u => addDoc(usersRef, u));
-      } else {
-        const loadedUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // loginId 기준 숫자로 오름차순 정렬
-        loadedUsers.sort((a, b) => {
-            const numA = parseInt(a.loginId);
-            const numB = parseInt(b.loginId);
-            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-            return a.loginId.localeCompare(b.loginId);
-        });
-        setAppUsers(loadedUsers);
-      }
-    });
-
-    // 4. 현장 데이터 연동
-    const sitesRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'sites');
-    const unsubSites = onSnapshot(sitesRef, (snapshot) => {
-      if (snapshot.empty) {
-        MOCK_SITES.forEach(site => addDoc(sitesRef, site));
-      } else {
-        setSites(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      }
-    });
-
-    return () => { unsubJobs(); unsubCheckins(); unsubUsers(); unsubSites(); };
-  }, [firebaseUser, dbInstance, appId]);
+    }
+  }, [currentUser, checkins]);
 
   // --- [NAVIGATION COMPONENTS] ---
   const AdminNav = () => (
     <nav className="bg-slate-900 text-slate-300 w-64 min-h-screen p-5 flex flex-col hidden md:flex shadow-2xl z-10">
       <div className="mb-10 text-center">
         <div className="text-2xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2">
-          {/* <img src="/logo.png" alt="로고" className="w-8 h-8 object-contain" /> */}
           휴먼패스
         </div>
         <div className="text-xs text-slate-500 mt-2 font-medium tracking-widest">관리자 시스템</div>
@@ -195,8 +113,6 @@ export default function App() {
   // --- [HANDLERS : LOGIN] ---
   const handleIdSubmit = (e) => {
     e.preventDefault();
-    if (!dbInstance || appUsers.length === 0) return alert('백엔드 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-
     const user = appUsers.find(u => u.loginId === loginId);
     if (!user) {
       alert("등록되지 않은 ID입니다. 관리자에게 문의하세요.\n(최초 테스트 시 최고관리자 ID: admin / PW: admin)");
@@ -204,14 +120,11 @@ export default function App() {
     }
     
     setTempUserObj(user);
-    if (user.isNew) {
-      setLoginStep('setup');
-    } else {
-      setLoginStep('password');
-    }
+    if (user.isNew) setLoginStep('setup');
+    else setLoginStep('password');
   };
 
-  const handleFinalLogin = async (e) => {
+  const handleFinalLogin = (e) => {
     e?.preventDefault();
     if (!loginPassword) return alert('비밀번호를 입력해주세요.');
     
@@ -226,22 +139,8 @@ export default function App() {
       finalUser.password = loginPassword;
       finalUser.isNew = false;
 
-      // DB 업데이트
-      try {
-        const userDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'users', finalUser.id);
-        await updateDoc(userDoc, {
-          name: finalUser.name,
-          birthdate: finalUser.birthdate,
-          gender: finalUser.gender,
-          password: finalUser.password,
-          isNew: false
-        });
-      } catch (err) {
-        console.error("회원정보 업데이트 에러:", err);
-        return alert("회원가입 처리 중 오류가 발생했습니다.");
-      }
+      setAppUsers(appUsers.map(u => u.id === finalUser.id ? finalUser : u));
     } else {
-      // 기존 유저 비밀번호 검증
       if (finalUser.password !== loginPassword) {
         return alert('비밀번호가 일치하지 않습니다.');
       }
@@ -269,27 +168,22 @@ export default function App() {
     }
   };
 
-  const handleCheckIn = async () => {
-    if (!firebaseUser || !dbInstance) return alert("백엔드 연결 중입니다.");
-    
+  const handleCheckIn = () => {
     const activeSite = sites.length > 0 ? sites[0] : { id: 'default', name: '지정 현장' };
-    
     alert(`GPS 위치를 확인합니다...\n[${activeSite.name}] 현장 반경 내에 있습니다. 출근 처리되었습니다.`);
-    try {
-      const checkinsRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'checkins');
-      const now = new Date();
-      await addDoc(checkinsRef, {
-        uid: firebaseUser.uid,
-        userName: currentUser?.name || '익명',
-        type: currentUser?.type || '스태프',
-        date: now.toLocaleDateString(),
-        time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-        siteId: activeSite.id, 
-        timestamp: now.getTime()
-      });
-    } catch (error) {
-      alert("출근 기록 저장에 실패했습니다.");
-    }
+    
+    const now = new Date();
+    const newCheckin = {
+      id: Date.now().toString(),
+      uid: currentUser.id,
+      userName: currentUser.name || '익명',
+      type: currentUser.type || '스태프',
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+      siteId: activeSite.id
+    };
+    
+    setCheckins([...checkins, newCheckin]);
   };
 
   // --- [HANDLERS : ADMIN SITES] ---
@@ -303,32 +197,20 @@ export default function App() {
     setIsSiteModalOpen(true);
   };
 
-  const handleSaveSite = async (e) => {
+  const handleSaveSite = (e) => {
     e.preventDefault();
-    if (!dbInstance) return alert('백엔드 연결 중입니다.');
-    try {
-      if (editingSite.id) {
-        const siteDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'sites', editingSite.id);
-        await updateDoc(siteDoc, editingSite);
-      } else {
-        const sitesRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'sites');
-        await addDoc(sitesRef, editingSite);
-      }
-      setIsSiteModalOpen(false);
-    } catch (err) {
-      alert("현장 저장에 실패했습니다.");
+    if (editingSite.id) {
+      setSites(sites.map(s => s.id === editingSite.id ? editingSite : s));
+    } else {
+      setSites([...sites, { ...editingSite, id: Date.now().toString() }]);
     }
+    setIsSiteModalOpen(false);
   };
 
-  const handleDeleteSite = async () => {
-    if (window.confirm(`이 현장을 정말 삭제하시겠습니까?\n(연결된 공고나 출퇴근 기록이 있을 경우 주의하세요)`)) {
-      try {
-        const siteDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'sites', editingSite.id);
-        await deleteDoc(siteDoc);
-        setIsSiteModalOpen(false);
-      } catch (err) {
-        alert("삭제 중 오류가 발생했습니다.");
-      }
+  const handleDeleteSite = () => {
+    if (window.confirm(`이 현장을 정말 삭제하시겠습니까?`)) {
+      setSites(sites.filter(s => s.id !== editingSite.id));
+      setIsSiteModalOpen(false);
     }
   };
 
@@ -346,38 +228,22 @@ export default function App() {
     setIsJobModalOpen(true);
   };
 
-  const handleSaveJob = async (e) => {
+  const handleSaveJob = (e) => {
     e.preventDefault();
-    if (!dbInstance) return alert('백엔드 연결 중입니다.');
     if (!editingJob.siteId) return alert('배치 현장을 검색하여 목록에서 선택해주세요.');
-    try {
-      if (editingJob.id) {
-        const jobDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'jobs', editingJob.id);
-        await updateDoc(jobDoc, {
-          ...editingJob
-        });
-      } else {
-        const jobsRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'jobs');
-        await addDoc(jobsRef, {
-          ...editingJob
-        });
-      }
-      setIsJobModalOpen(false);
-    } catch (err) {
-      console.error("공고 등록 에러:", err);
-      alert("저장에 실패했습니다.");
+    
+    if (editingJob.id) {
+      setJobs(jobs.map(j => j.id === editingJob.id ? editingJob : j));
+    } else {
+      setJobs([...jobs, { ...editingJob, id: Date.now().toString() }]);
     }
+    setIsJobModalOpen(false);
   };
 
-  const handleDeleteJob = async () => {
+  const handleDeleteJob = () => {
     if (window.confirm(`이 공고를 정말 삭제하시겠습니까?`)) {
-      try {
-        const jobDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'jobs', editingJob.id);
-        await deleteDoc(jobDoc);
-        setIsJobModalOpen(false);
-      } catch (err) {
-        alert("삭제 중 오류가 발생했습니다.");
-      }
+      setJobs(jobs.filter(j => j.id !== editingJob.id));
+      setIsJobModalOpen(false);
     }
   };
 
@@ -407,33 +273,20 @@ export default function App() {
     setIsUserModalOpen(true);
   };
 
-  const handleSaveUser = async (e) => {
+  const handleSaveUser = (e) => {
     e.preventDefault();
-    try {
-      if (editingUser.id) {
-        // 기존 수정
-        const userDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'users', editingUser.id);
-        await updateDoc(userDoc, editingUser);
-      } else {
-        // 신규 추가
-        const usersRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'users');
-        await addDoc(usersRef, editingUser);
-      }
-      setIsUserModalOpen(false);
-    } catch (err) {
-      alert("저장 중 오류가 발생했습니다.");
+    if (editingUser.id) {
+      setAppUsers(appUsers.map(u => u.id === editingUser.id ? editingUser : u));
+    } else {
+      setAppUsers([...appUsers, { ...editingUser, id: Date.now().toString() }]);
     }
+    setIsUserModalOpen(false);
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (window.confirm(`[${editingUser.loginId}번] 계정을 정말 삭제하시겠습니까?`)) {
-      try {
-        const userDoc = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'users', editingUser.id);
-        await deleteDoc(userDoc);
-        setIsUserModalOpen(false);
-      } catch (err) {
-        alert("삭제 중 오류가 발생했습니다.");
-      }
+      setAppUsers(appUsers.filter(u => u.id !== editingUser.id));
+      setIsUserModalOpen(false);
     }
   };
 
@@ -472,7 +325,7 @@ export default function App() {
             </form>
           )}
 
-          {/* STEP 2: PASSWORD 입력 (기존 유저) */}
+          {/* STEP 2: PASSWORD 입력 */}
           {loginStep === 'password' && (
             <form onSubmit={handleFinalLogin} className="space-y-5 animate-fade-in-up">
               <div className="flex items-center text-sm font-bold text-slate-500 bg-slate-100/50 p-3 rounded-xl">
@@ -501,7 +354,7 @@ export default function App() {
             </form>
           )}
 
-          {/* STEP 3: SETUP (신규 유저) */}
+          {/* STEP 3: SETUP */}
           {loginStep === 'setup' && (
             <form onSubmit={handleFinalLogin} className="space-y-4 animate-fade-in-up">
               <div className="text-sm font-bold text-indigo-600 bg-indigo-50 p-3 rounded-xl mb-4 border border-indigo-100">
@@ -551,7 +404,7 @@ export default function App() {
   // --- [VIEWS : ADMIN] ---
   if (currentUser?.role === 'admin') {
     const todayStr = new Date().toLocaleDateString();
-    const todaysCheckins = allCheckins.filter(c => c.date === todayStr);
+    const todaysCheckins = checkins.filter(c => c.date === todayStr);
     const getSiteCheckinCount = (siteId) => todaysCheckins.filter(c => c.siteId === siteId).length;
 
     return (
@@ -713,7 +566,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Admin Job Modal (등록 및 수정) */}
+          {/* Admin Job Creation Modal */}
           {isJobModalOpen && editingJob && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
               <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsJobModalOpen(false)}></div>
@@ -841,7 +694,7 @@ export default function App() {
                       </tr>
                     ) : (
                       appUsers.filter(u => u.role === 'worker').map(user => (
-                        <tr key={user.id || user.loginId} onClick={() => openEditUserModal(user)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                        <tr key={user.id} onClick={() => openEditUserModal(user)} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
                           <td className="p-4 font-extrabold text-indigo-600">{user.loginId}</td>
                           <td className="p-4">
                             <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">{user.type}</span>
