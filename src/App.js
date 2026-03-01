@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  User, Briefcase, MapPin, CheckSquare, Camera, FileText, 
-  Settings, LogOut, Home, Calendar, Users, Plus, CheckCircle, Clock, Menu, X, ChevronRight, ArrowLeft, ArrowRight, IdCard, Trash2, Edit2
+  User, Briefcase, MapPin, Camera, FileText, 
+  LogOut, Home, Calendar, Users, Plus, CheckCircle, Clock, Menu, X, ArrowLeft, ArrowRight, IdCard, Trash2, Edit2
 } from 'lucide-react';
 
 // --- [초기 기본 데이터 세팅] ---
